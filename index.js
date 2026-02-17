@@ -53,9 +53,8 @@ var event = new function(){
 	var 何問目 = 0;
 	var 一歩距離 = 0;
 	
-	var わり算_第一項範囲;
-	var わり算_第二項範囲;
-	var 余り;
+	var 約数候補;
+	var 小数以下桁数;
 	
 	var カービ移動回数 = 0;
 	var デデデ移動回数 = 0;
@@ -85,11 +84,10 @@ var event = new function(){
 	 */
 	this.easy = function(){
 		event.startMusic();
-		一問時間 = 5 * 1000;
+		一問時間 = 10 * 1000;
 		
-		わり算_第一項範囲 = [1, 9];
-		わり算_第二項範囲 = [1, 9];
-		余り = false;
+		約数候補 = [2, 5];
+		小数以下桁数 = 2;
 		
 		event.countDown();
 	};
@@ -99,11 +97,10 @@ var event = new function(){
 	 */
 	this.normal = function(){
 		event.startMusic();
-		一問時間 = 7 * 1000;
+		一問時間 = 12 * 1000;
 		
-		わり算_第一項範囲 = [2, 9];
-		わり算_第二項範囲 = [2, 9];
-		余り = false;
+		約数候補 = [2, 4, 5, 25];
+		小数以下桁数 = 2;
 		
 		event.countDown();
 	};
@@ -113,11 +110,10 @@ var event = new function(){
 	 */
 	this.hard = function(){
 		event.startMusic();
-		一問時間 = 7 * 1000;
+		一問時間 = 10 * 1000;
 		
-		わり算_第一項範囲 = [2, 9];
-		わり算_第二項範囲 = [2, 9];
-		余り = true;
+		約数候補 = [2, 4, 5, 25];
+		小数以下桁数 = 3;
 		
 		event.countDown();
 	};
@@ -127,11 +123,11 @@ var event = new function(){
 	 */
 	this.veryhard = function(){
 		event.startMusic();
-		一問時間 = 5 * 1000;
+		一問時間 = 10 * 1000;
 		
-		わり算_第一項範囲 = [2, 15];
-		わり算_第二項範囲 = [2, 9];
-		余り = true;
+		約数候補 = [2, 4, 5, 25, 125];
+		小数以下桁数 = 3;
+		
 		event.countDown();
 	};
 	
@@ -183,25 +179,33 @@ var event = new function(){
 
 		何問目++;
 		
-		var num2 = Math.floor(Math.random() * (わり算_第一項範囲[1] - わり算_第一項範囲[0])) + わり算_第一項範囲[0];
-		var answer = Math.floor(Math.random() * (わり算_第二項範囲[1] - わり算_第二項範囲[0])) + わり算_第二項範囲[0];
+		var 約数 = 約数候補[Math.floor(Math.random() * 約数候補.length)];
+		var ベース分母 = 10 ** 小数以下桁数;
 		
-		var num1 = answer * num2;
-		
-		var amari = 0;
-		if(余り) {
-			amari = Math.floor(Math.random() * num2 );
-			num1 += amari;
+		var 小数以下数字 = 0;
+		while(true) {
+			小数以下数字 = Math.floor(Math.random() * (ベース分母/約数)) * 約数;
+			if(小数以下数字%10 == 0) {
+				continue;
+			}
+			if(小数以下数字 <= (ベース分母 / 10)) {
+				continue;
+			}
+			
+			break;
 		}
 		
-		$('#game-text').html(num1 + " ÷ " + num2);
+		$('#game-text').html(0 + "." + 小数以下数字);
 		
-		if(amari == 0) {
-			$('#answer').html(answer);
-		} else {
-			$('#answer').html(answer + " … " + amari);
-		}
+		var 約分後 = this.reduction(ベース分母, 小数以下数字);
+		var 答え分母 = 約分後[0];
+		var 答え分子 = 約分後[1];
 		
+		$('#answer').html(
+		  "<table align='center' style='text-align:center;'><tr><td style='border-bottom:5px solid;'><span style='padding:0px 30px 0px 30px;'>" + 答え分子 +
+		  "</span></td></tr><tr><td><span style='padding:0px 30px 0px 30px;'>" + 答え分母 +
+		  "</span></td></tr></table>"
+		);
 	};
 	
 	
@@ -239,7 +243,7 @@ var event = new function(){
 		
 			event.takeMondai();
 			
-		}, 500);
+		}, 800);
 	};
 	
 	
@@ -354,5 +358,54 @@ var event = new function(){
 		TimeDefference = (('00' + Math.floor(Minute)).slice(-2) + ':' + ('00' + Math.floor(Second)).slice(-2));
 		
 		$('.time').html(TimeDefference);
+	};
+	
+	
+	// 二つの値を約分する 
+	this.reduction = function(value1,value2) {
+
+	        // 小数以下の桁数取得
+	    const digit1 = this.getdecimalPrecision(value1);
+	    const digit2 = this.getdecimalPrecision(value2);
+	    if( digit1 === false || digit2 === false ) return false;
+
+	        // 符号取得
+	    const sign = [Math.sign( value1 ),Math.sign( value2 )];
+
+	        // 整数化
+	    const digit = 10 ** Math.max( digit1 , digit2 );
+	    const v1 = Math.abs( Math.round( value1 * digit ) );
+	    const v2 = Math.abs( Math.round( value2 * digit ) );
+
+	        // 公倍数を求める
+	    const gcd = this.greatestCommonDivisor2( v1 , v2 );
+
+	        // 約分して返す
+	    return [ Math.round( v1 / gcd ) * sign[0] , Math.round( v2 / gcd ) * sign[1] ];
+	};
+	
+	// 最大公約数を求める https://note.affi-sapo-sv.com/js-greatest-common-divisor.php
+	this.greatestCommonDivisor2 = function( value1 , value2 ) {
+	    let r , a = value1 , b = value2;
+
+	    do{
+	        r = a % b;
+	        a = b;b = r;
+	    }while( r !== 0 );
+
+	    return a;
+	};
+	
+	// 小数部の桁数を求める https://note.affi-sapo-sv.com/js-get-fractional-digits.php
+	this.getdecimalPrecision = function(number, digits) {
+	            // 数値文字列かどうかのチェック
+	    if( typeof number !== "number" ) return false;
+
+	    const f = number.toFixed(digits).split(".")[1];
+	    if( f === undefined || f.length === 0) return 0;
+
+	        // 後方の"0"を取り除いた桁数取得
+	    return f.length - ["1",...f].reverse().findIndex( e=>e!="0");
+
 	};
 };
